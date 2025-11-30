@@ -32,6 +32,7 @@ dependencies {
         
     implementation('org.slf4j:jcl-over-slf4j')
     implementation('ch.qos.logback:logback-classic')
+    runtimeOnly 'com.h2database:h2'
     
 }
 

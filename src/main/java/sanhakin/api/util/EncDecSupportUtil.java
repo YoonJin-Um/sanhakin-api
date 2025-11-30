@@ -4,7 +4,9 @@ package sanhakin.api.util;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import org.springframework.stereotype.Component;
 
+@Component
 public class EncDecSupportUtil {
 
     public String encryptAesToHex(String key, String iv, String plain){
