@@ -2,6 +2,7 @@
 package sanhakin.api.entity;
 
 import sanhakin.api.dto.Sbc01RecordDto;
+<<<<<<< HEAD
 
 import java.time.LocalDateTime;
 
@@ -110,6 +111,100 @@ public class Sbc01RecordEntity {
         this.planExpryNocs = dto.PLAN_EXPRY_NOCS;
         this.planVldNocs = dto.PLAN_VLD_NOCS;
 
+=======
+import javax.persistence.*;
+
+@Entity
+@Table(name = "WTC_API_BIZTOT")
+public class Sbc01RecordEntity {
+
+    @Id
+    @Column(name = "BIZR_NO", length = 10, nullable = false)
+    private String bizrNo;
+
+    @Column(name = "ENT_NM")
+    private String entNm;
+
+    @Column(name = "SPCLHS_RCRUT_NOPE")
+    private Integer spclhsRcrutNope;
+
+    @Column(name = "SPCLHS_RCRUT_ACML_NOPE")
+    private Integer spclhsRcrutAcmlNope;
+
+    @Column(name = "TECH_RCRUT_NOPE")
+    private Integer techRcrutNope;
+
+    @Column(name = "TECH_RCRUT_ACML_NOPE")
+    private Integer techRcrutAcmlNope;
+
+    @Column(name = "CNDEPT_TRN01_NOPE")
+    private Integer cndeptTrn01Nope;
+
+    @Column(name = "CNDEPT_TRN02_NOPE")
+    private Integer cndeptTrn02Nope;
+
+    @Column(name = "CNDEPT_TRN03_NOPE")
+    private Integer cndeptTrn03Nope;
+    
+    @Column(name = "CNDEPT_TRN04_NOPE")
+    private Integer cndeptTrn04Nope;
+
+    @Column(name = "CNDEPT_TRN01_ACML_NOPE")
+    private Integer cndeptTrn01AcmlNope;
+
+    @Column(name = "CNDEPT_TRN02_ACML_NOPE")
+    private Integer cndeptTrn02AcmlNope;
+
+    @Column(name = "CNDEPT_TRN03_ACML_NOPE")
+    private Integer cndeptTrn03AcmlNope;
+
+    @Column(name = "CNDEPT_TRN04_ACML_NOPE")
+    private Integer cndeptTrn04AcmlNope;
+
+    @Column(name = "BSCI_INTR_NOCS")
+    private Integer bsciIntrNocs;
+    
+    @Column(name = "BSCI_EXPRY_NOCS")
+    private Integer bsciExpryNocs;
+    
+    @Column(name = "BSCI_VLD_NOCS")
+    private Integer bsciVldNocs;
+    
+    @Column(name = "PLAN_INTR_NOCS")
+    private Integer planIntrNocs;
+    
+    @Column(name = "PLAN_EXPRY_NOCS")
+    private Integer planExpryNocs;
+
+    @Column(name = "PLAN_VLD_NOCS")
+    private Integer planVldNocs;
+
+    public Sbc01RecordEntity(){}
+
+    public void applyFromDto(Sbc01RecordDto dto){
+        if(dto == null) return;
+        
+        this.bizrNo = dto.BIZR_NO;
+        this.entNm = dto.ENT_NM;
+        this.spclhsRcrutNope = dto.SPCLHS_RCRUT_NOPE;
+        this.spclhsRcrutAcmlNope = dto.SPCLHS_RCRUT_ACML_NOPE;
+        this.techRcrutNope = dto.TECH_RCRUT_NOPE;
+        this.techRcrutAcmlNope = dto.TECH_RCRUT_ACML_NOPE;
+        this.cndeptTrn01Nope = dto.CNDEPT_TRN01_NOPE;
+        this.cndeptTrn02Nope = dto.CNDEPT_TRN02_NOPE;
+        this.cndeptTrn03Nope = dto.CNDEPT_TRN03_NOPE;
+        this.cndeptTrn04Nope = dto.CNDEPT_TRN04_NOPE;
+        this.cndeptTrn01AcmlNope = dto.CNDEPT_TRN01_ACML_NOPE;
+        this.cndeptTrn02AcmlNope = dto.CNDEPT_TRN02_ACML_NOPE;
+        this.cndeptTrn03AcmlNope = dto.CNDEPT_TRN03_ACML_NOPE;
+        this.cndeptTrn04AcmlNope = dto.CNDEPT_TRN04_ACML_NOPE;
+        this.bsciIntrNocs = dto.BSCI_INTR_NOCS;
+        this.bsciExpryNocs = dto.BSCI_EXPRY_NOCS;
+        this.bsciVldNocs = dto.BSCI_VLD_NOCS;
+        this.planIntrNocs = dto.PLAN_INTR_NOCS;
+        this.planExpryNocs = dto.PLAN_EXPRY_NOCS;
+        this.planVldNocs = dto.PLAN_VLD_NOCS;
+>>>>>>> branch 'main' of https://github.com/YoonJin-Um/sanhakin-api
     }
     
     public String getBizrNo(){ return this.bizrNo; }

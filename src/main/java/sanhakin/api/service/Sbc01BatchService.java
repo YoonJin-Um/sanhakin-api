@@ -1,13 +1,11 @@
 package sanhakin.api.service;
 
-import org.springframework.http.*;
-import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.security.InvalidAlgorithmParameterException;
@@ -22,10 +20,13 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+
 import sanhakin.api.dto.Sbc01RecordDto;
 import sanhakin.api.entity.Sbc01RecordEntity;
 import sanhakin.api.repository.Sbc01RecordRepository;
+import sanhakin.api.util.ApiUtil;
 import sanhakin.api.util.EncDecSupportUtil;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,33 +83,24 @@ public class Sbc01BatchService {
         Map<String,String> headers = new HashMap<>();
         headers.put("IF_ID", "IF-SBC-0001-01");
 
-        RestTemplate rest = new RestTemplate();
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
-        if(headers!=null){ headers.forEach(httpHeaders::add); }
-
-        HttpEntity<Object> httpEtt = new HttpEntity<>(reqBody, httpHeaders);
-        Map<String, Object> resp;
-        
-        try{
-            ResponseEntity<Map<String, Object>> response = rest.exchange(
+        //ApiUtil 사용하여 API 호출
+        @SuppressWarnings("unchecked")
+		Map<String, Object> resp = ApiUtil.postJson(
                 URL,
-                HttpMethod.POST,
-                httpEtt,
-                new ParameterizedTypeReference<Map<String, Object>>() {}
-            );
-            resp = response.getBody();
-            
-        }catch(HttpStatusCodeException e){
-        	logger.error("[API ERROR] STATUS: {}", e.getStatusCode());
-            throw new RuntimeException(e.getResponseBodyAsString());
+                reqBody,
+                Map.class,
+                headers
+        );
+
+        if (resp == null || resp.get("RECORD") == null) {
+            logger.warn("[API] RECORD 데이터 없음");
+            return;
         }
-        
-        if(resp == null || resp.get("RECORD") == null) return;
         
         // 1) RECORD 파싱
         Object recordObj = resp.get("RECORD");
         if (!(recordObj instanceof List)) {
+        	logger.warn("[API] RECORD 형식 비정상");
             return;
         }
         
@@ -122,7 +114,8 @@ public class Sbc01BatchService {
             .collect(Collectors.toList());
 
         if (records.isEmpty()) {
-            return;
+        	logger.info("[API] 저장할 RECORD 없음");
+        	return;
         }
 
         // 3) BizrNo 목록 distinct
@@ -142,6 +135,7 @@ public class Sbc01BatchService {
         
         // 5) Upsert 대상 구성
         List<Sbc01RecordEntity> toSaveList = new ArrayList<>();
+        
         for (Sbc01RecordDto dto : records) {
 
             Sbc01RecordEntity entity = existEntityMap.get(dto.BIZR_NO);
@@ -153,30 +147,28 @@ public class Sbc01BatchService {
             entity.applyFromDto(dto);
             toSaveList.add(entity);
         }
-        
+        logger.debug("============ 저장준비 완료 | {} 건 =============", toSaveList.size());
+
+        /*
         // ** 임시 테스트
-//        List<Sbc01RecordEntity> limitedList = toSaveList.stream()
-//                .limit(10)
-//                .collect(Collectors.toList());
-//
-//        if (!limitedList.isEmpty()) {
-//            repository.saveAll(limitedList);
-//            entityManager.flush();
-//            entityManager.clear();
-//            logger.debug("============ 일괄 저장 the end =============");
-//        }
-        
+        List<Sbc01RecordEntity> limitedList = toSaveList.stream()
+                .limit(10)
+                .collect(Collectors.toList());
+
+        if (!limitedList.isEmpty()) {
+            repository.saveAll(limitedList);
+            entityManager.flush();
+            entityManager.clear();
+            logger.debug("============ 일괄 저장 the end =============");
+        }
+
         // 6) 일괄 저장
         if(!toSaveList.isEmpty()){
-        	long start = System.currentTimeMillis(); // 시작 시각 기록
             repository.saveAll(toSaveList);
             entityManager.flush();
             entityManager.clear();
-            long end = System.currentTimeMillis();   // 종료 시각 기록
-            long elapsed = end - start;              // 경과 시간(ms)
-            System.out.println("소요 시간: " + elapsed + " ms");
-            logger.debug("============ 일괄 저장 the end =============");
+            logger.debug("============ 일괄 저장 완료 | {} 건 =============", toSaveList.size());
         }
-        
+         */
     }
 }

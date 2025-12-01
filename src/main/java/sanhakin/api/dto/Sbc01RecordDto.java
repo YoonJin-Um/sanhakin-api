@@ -1,7 +1,6 @@
 package sanhakin.api.dto;
 
 public class Sbc01RecordDto {
-	
 	public String BIZR_NO;
 	public String ENT_NM;
 	
