@@ -17,10 +17,10 @@ public class ApiUtil {
 
     public static <T> T postJson(String url,Object req,Class<T>resType,Map<String,String>headersMap){
 
-        HttpHeaders headers=new HttpHeaders();
+        HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        if(headersMap!=null){
+        if(headersMap != null){
             headersMap.forEach(headers::add);
         }
 

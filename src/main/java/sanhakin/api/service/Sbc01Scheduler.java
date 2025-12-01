@@ -1,22 +1,35 @@
-
 package sanhakin.api.service;
 
-import org.springframework.scheduling.annotation.Scheduled;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.util.Date;
+
+import javax.annotation.PostConstruct;
+
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 public class Sbc01Scheduler {
-
+	
     private final Sbc01BatchService batchService;
+    private static final Logger logger = LoggerFactory.getLogger(Sbc01BatchService.class);
 
     public Sbc01Scheduler(Sbc01BatchService batchService){
-        this.batchService=batchService;
+        this.batchService = batchService;
     }
 
-    @Scheduled(cron="0 0 * * * *")
-    public void runHourly(){
-        System.out.println("[Scheduler] SBC01 Batch Start");
+//    @Scheduled(cron="0 0 * * * *")
+    public void runHourly() {
+    	
+    	long start = System.currentTimeMillis();
+    	logger.info("[SBC01] START at {}", LocalDateTime.now());
+;
         batchService.execute();
-        System.out.println("[Scheduler] SBC01 Batch End");
+
+        long end = System.currentTimeMillis();
+        logger.info("[SBC01] END at {} (duration: {} ms)", LocalDateTime.now(), end - start);
     }
+ 
 }

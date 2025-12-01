@@ -1,63 +1,174 @@
-
 package sanhakin.api.service;
 
-import sanhakin.api.dto.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+
+import sanhakin.api.dto.Sbc01RecordDto;
 import sanhakin.api.entity.Sbc01RecordEntity;
 import sanhakin.api.repository.Sbc01RecordRepository;
 import sanhakin.api.util.ApiUtil;
 import sanhakin.api.util.EncDecSupportUtil;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.text.SimpleDateFormat;
-import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class Sbc01BatchService {
+    
+    private static final String URL = "https://www.smes.go.kr/sanhakin/api/sbc01";
+    
+    @Value("${sanhakin.sbc01.encKey}")
+    private String encKey;
+    
+    @Value("${sanhakin.sbc01.ivKey}")
+    private String ivKey;
+    
+    @Value("${sanhakin.sbc01.userKey}")
+    private String userKey;
+    
+    @Autowired
+    private Sbc01RecordRepository repository;
+    
+    @PersistenceContext
+    private EntityManager entityManager;
 
-    private static final String URL="https://www.smes.go.kr/sanhakin/api/sbc01";
-    private static final String KEY="1234567890123456";
-    private static final String IV ="1234567890123456";
-    private static final String USER_KEY="sanhakinSBC01";
-
-    private final Sbc01RecordRepository repository;
-    private final EncDecSupportUtil encDecSupportUtil=new EncDecSupportUtil();
-
-    public Sbc01BatchService(Sbc01RecordRepository repository){
-        this.repository=repository;
-    }
-
+    private static final Logger logger = LoggerFactory.getLogger(Sbc01BatchService.class);
+    
     @Transactional
-    public void execute(){
+    public void execute() {
+    	
+    	EncDecSupportUtil encDecUtil = new EncDecSupportUtil();
+        
+    	String now = new SimpleDateFormat("yyyyMMddHH").format(new Date());
+        String plainToken = userKey + now;
 
-        String now=new SimpleDateFormat("yyyyMMddHH").format(new Date());
-        String plainToken=USER_KEY+now;
+        String encToken = null;
+		try {
+			encToken = encDecUtil.EncryptAesStringToHex(encKey, ivKey, plainToken);
+			
+		} catch (InvalidKeyException 
+		        | NoSuchAlgorithmException
+		        | NoSuchPaddingException
+		        | InvalidAlgorithmParameterException
+		        | IllegalBlockSizeException
+		        | BadPaddingException e) {
 
-        String encToken=encDecSupportUtil.encryptAesToHex(KEY,IV,plainToken);
+		    logger.error("[AES 암호화 오류] token 암호화 실패. 원인: {}", e.getMessage(), e);
+		    throw new RuntimeException("AES 암호화 중 오류가 발생했습니다.", e);
+		}
 
-        Map<String,Object> reqBody=new HashMap<>();
-        Map<String,Object> data=new HashMap<>();
-        data.put("token",encToken);
-        reqBody.put("DATA",data);
+        Map<String,Object> reqBody = new HashMap<>();
+        Map<String,Object> data = new HashMap<>();
+        reqBody.put("DATA", data);
+        data.put("token", encToken);
 
-        Map<String,String> headers=new HashMap<>();
-        headers.put("IF_ID","IF-SBC-0001-01");
+        Map<String,String> headers = new HashMap<>();
+        headers.put("IF_ID", "IF-SBC-0001-01");
 
-        Sbc01Response resp=ApiUtil.postJson(URL,reqBody,Sbc01Response.class,headers);
+        //ApiUtil 사용하여 API 호출
+        @SuppressWarnings("unchecked")
+		Map<String, Object> resp = ApiUtil.postJson(
+                URL,
+                reqBody,
+                Map.class,
+                headers
+        );
 
-        if(resp==null || resp.getRECORD()==null)return;
-
-        for(Sbc01RecordDto dto:resp.getRECORD()){
-            if(dto.BIZR_NO==null)continue;
-            Optional<Sbc01RecordEntity> existing=repository.findByBizrNo(dto.BIZR_NO);
-            Sbc01RecordEntity entity;
-            if(existing.isPresent()){
-                entity=existing.get();
-            }else{
-                entity=new Sbc01RecordEntity();
-            }
-            entity.applyFromDto(dto);
-            repository.save(entity);
+        if (resp == null || resp.get("RECORD") == null) {
+            logger.warn("[API] RECORD 데이터 없음");
+            return;
         }
+        
+        // 1) RECORD 파싱
+        Object recordObj = resp.get("RECORD");
+        if (!(recordObj instanceof List)) {
+        	logger.warn("[API] RECORD 형식 비정상");
+            return;
+        }
+        
+        List<?> rawList = (List<?>) recordObj;
+        ObjectMapper mapper = new ObjectMapper();
+        
+        // 2) DTO 변환 + null BIZR_NO 제거
+        List<Sbc01RecordDto> records = rawList.stream()
+            .map(item -> mapper.convertValue(item, Sbc01RecordDto.class))
+            .filter(dto -> dto.BIZR_NO != null)
+            .collect(Collectors.toList());
+
+        if (records.isEmpty()) {
+        	logger.info("[API] 저장할 RECORD 없음");
+        	return;
+        }
+
+        // 3) BizrNo 목록 distinct
+        List<String> bizrNos = records.stream()
+                .map(dto -> dto.BIZR_NO)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 4) 기존 DB Data 조회 후 Map으로 변환
+        List<Sbc01RecordEntity> existList =
+                bizrNos.isEmpty() ? Collections.emptyList() : repository.findByBizrNoIn(bizrNos);
+
+        Map<String, Sbc01RecordEntity> existEntityMap = new HashMap<>();
+        for (Sbc01RecordEntity entity : existList) {
+            existEntityMap.put(entity.getBizrNo(), entity);
+        }
+        
+        // 5) Upsert 대상 구성
+        List<Sbc01RecordEntity> toSaveList = new ArrayList<>();
+        
+        for (Sbc01RecordDto dto : records) {
+
+            Sbc01RecordEntity entity = existEntityMap.get(dto.BIZR_NO);
+
+            if (entity == null) {
+                entity = new Sbc01RecordEntity();
+            }
+
+            entity.applyFromDto(dto);
+            toSaveList.add(entity);
+        }
+        logger.debug("============ 저장준비 완료 | {} 건 =============", toSaveList.size());
+
+        /*
+        // ** 임시 테스트
+        List<Sbc01RecordEntity> limitedList = toSaveList.stream()
+                .limit(10)
+                .collect(Collectors.toList());
+
+        if (!limitedList.isEmpty()) {
+            repository.saveAll(limitedList);
+            entityManager.flush();
+            entityManager.clear();
+            logger.debug("============ 일괄 저장 the end =============");
+        }
+
+        // 6) 일괄 저장
+        if(!toSaveList.isEmpty()){
+            repository.saveAll(toSaveList);
+            entityManager.flush();
+            entityManager.clear();
+            logger.debug("============ 일괄 저장 완료 | {} 건 =============", toSaveList.size());
+        }
+         */
     }
 }
