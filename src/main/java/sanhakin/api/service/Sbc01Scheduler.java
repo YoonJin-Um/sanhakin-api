@@ -1,14 +1,11 @@
 package sanhakin.api.service;
 
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
-import java.util.Date;
 
-import javax.annotation.PostConstruct;
-
-import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
 @Component
 public class Sbc01Scheduler {
@@ -20,12 +17,12 @@ public class Sbc01Scheduler {
         this.batchService = batchService;
     }
 
-//    @Scheduled(cron="0 0 * * * *")
+    @Scheduled(cron="0 * * * * *")
     public void runHourly() {
     	
     	long start = System.currentTimeMillis();
     	logger.info("[SBC01] START at {}", LocalDateTime.now());
-;
+
         batchService.execute();
 
         long end = System.currentTimeMillis();

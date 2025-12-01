@@ -168,13 +168,9 @@ public class Sbc01BatchService {
         
         // 6) 일괄 저장
         if(!toSaveList.isEmpty()){
-        	long start = System.currentTimeMillis(); // 시작 시각 기록
             repository.saveAll(toSaveList);
             entityManager.flush();
-            entityManager.clear();
-            long end = System.currentTimeMillis();   // 종료 시각 기록
-            long elapsed = end - start;              // 경과 시간(ms)
-            System.out.println("소요 시간: " + elapsed + " ms");
+            entityManager.clear();                       
             logger.debug("============ 일괄 저장 the end =============");
         }
         
