@@ -52,7 +52,7 @@ public class Sbc01BatchService {
     private static final Logger logger = LoggerFactory.getLogger(Sbc01BatchService.class);
     
     @Transactional
-    public void execute() {
+    public synchronized void execute() {
     	
     	EncDecSupportUtil encDecUtil = new EncDecSupportUtil();
         

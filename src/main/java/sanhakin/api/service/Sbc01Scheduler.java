@@ -17,7 +17,7 @@ public class Sbc01Scheduler {
         this.batchService = batchService;
     }
 
-    @Scheduled(cron="0 * * * * *")
+    @Scheduled(cron="0 */10 * * * *")
     public void runHourly() {
     	
     	long start = System.currentTimeMillis();
